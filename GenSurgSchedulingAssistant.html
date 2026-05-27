@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Gen Surgery Scheduling Assistant — Houston Methodist</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f4f5f7; color: #111827; }
+
+  /* ── Key Screen ── */
+  #key-screen {
+    display: flex; align-items: center; justify-content: center;
+    height: 100vh; background: #f4f5f7;
+  }
+  .key-card {
+    background: #fff; border-radius: 14px; border: 1px solid #e5e7eb;
+    padding: 36px 32px; width: 420px; max-width: 94vw;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.07);
+  }
+  .key-logo {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 24px;
+  }
+  .key-logo-icon {
+    width: 40px; height: 40px; background: #c8102e; border-radius: 9px;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .key-logo-title { font-size: 16px; font-weight: 600; color: #1a2744; line-height: 1.2; }
+  .key-logo-sub   { font-size: 11px; color: #9ca3af; margin-top: 2px; }
+  .key-card h2    { font-size: 15px; font-weight: 600; color: #111827; margin-bottom: 6px; }
+  .key-card p     { font-size: 12.5px; color: #6b7280; line-height: 1.6; margin-bottom: 18px; }
+  .key-card label { display: block; font-size: 12px; font-weight: 500; color: #374151; margin-bottom: 6px; }
+  .key-input {
+    width: 100%; border: 1px solid #d1d5db; border-radius: 8px;
+    padding: 10px 13px; font-size: 13px; font-family: monospace;
+    background: #f9fafb; color: #111827; outline: none;
+    transition: border-color 0.15s;
+  }
+  .key-input:focus { border-color: #1a2744; background: #fff; }
+  .key-error { font-size: 12px; color: #dc2626; margin-top: 6px; display: none; }
+  .key-btn {
+    width: 100%; margin-top: 14px; background: #1a2744; color: #fff;
+    border: none; border-radius: 8px; padding: 11px; font-size: 13px;
+    font-weight: 500; cursor: pointer; transition: background 0.15s;
+  }
+  .key-btn:hover { background: #253660; }
+  .key-note {
+    margin-top: 14px; font-size: 11px; color: #9ca3af; line-height: 1.5; text-align: center;
+  }
+  .key-note a { color: #1a2744; }
+
+  /* ── App Shell ── */
+  #app { display: none; flex-direction: column; height: 100vh; }
+
+  /* Header */
+  .hdr {
+    background: #1a2744; padding: 13px 20px;
+    display: flex; align-items: center; gap: 12px; flex-shrink: 0;
+  }
+  .hdr-icon {
+    width: 38px; height: 38px; background: #c8102e; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .hdr-title { color: #fff; font-size: 15px; font-weight: 600; line-height: 1.2; }
+  .hdr-sub   { color: rgba(255,255,255,0.5); font-size: 11px; margin-top: 1px; }
+  .hdr-badge {
+    margin-left: auto; background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.65);
+    font-size: 11px; padding: 3px 10px; border-radius: 20px;
+    border: 0.5px solid rgba(255,255,255,0.2); white-space: nowrap;
+  }
+
+  /* Body */
+  .body { display: flex; flex: 1; min-height: 0; }
+
+  /* Sidebar */
+  .sidebar {
+    width: 220px; background: #fff; border-right: 1px solid #e5e7eb;
+    display: flex; flex-direction: column; flex-shrink: 0; overflow: hidden;
+  }
+  .sidebar-section-label {
+    padding: 14px 14px 6px; font-size: 10px; font-weight: 600;
+    color: #9ca3af; letter-spacing: 0.08em; text-transform: uppercase;
+    flex-shrink: 0;
+  }
+  .suggestions {
+    padding: 0 10px 10px; display: flex; flex-direction: column;
+    gap: 4px; overflow-y: auto; flex: 1;
+  }
+  .sq {
+    background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 7px;
+    padding: 8px 10px; font-size: 11.5px; color: #374151; cursor: pointer;
+    text-align: left; line-height: 1.4; transition: all 0.15s; font-family: inherit;
+  }
+  .sq:hover { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+  .sq:disabled { opacity: 0.5; cursor: default; }
+  .kb-section {
+    padding: 12px 14px; border-top: 1px solid #e5e7eb; flex-shrink: 0;
+  }
+  .doc-item {
+    display: flex; align-items: flex-start; gap: 6px;
+    font-size: 10.5px; color: #6b7280; padding: 2px 0; line-height: 1.4;
+  }
+  .doc-dot {
+    width: 5px; height: 5px; background: #1a2744; border-radius: 50%;
+    flex-shrink: 0; margin-top: 4px; opacity: 0.35;
+  }
+
+  /* Chat main */
+  .main { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+  .msgs {
+    flex: 1; overflow-y: auto; padding: 20px;
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .empty-state {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; height: 100%; color: #9ca3af; gap: 10px;
+  }
+  .empty-icon {
+    width: 52px; height: 52px; background: #f3f4f6; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .empty-text { font-size: 13px; }
+
+  /* Messages */
+  .msg { display: flex; flex-direction: column; max-width: 82%; }
+  .msg.user     { align-self: flex-end; align-items: flex-end; }
+  .msg.assistant{ align-self: flex-start; align-items: flex-start; }
+  .msg-label    { font-size: 10px; color: #9ca3af; margin-bottom: 3px; padding: 0 4px; }
+  .bubble {
+    padding: 10px 14px; font-size: 13px; line-height: 1.65;
+    white-space: pre-wrap; word-break: break-word;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  }
+  .msg.user .bubble {
+    background: #1a2744; color: #fff;
+    border-radius: 12px 12px 3px 12px;
+  }
+  .msg.assistant .bubble {
+    background: #fff; color: #111827;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px 12px 12px 3px;
+  }
+
+  /* Typing indicator */
+  .typing-wrap { align-self: flex-start; display: flex; flex-direction: column; align-items: flex-start; }
+  .typing-dots {
+    background: #fff; border: 1px solid #e5e7eb;
+    border-radius: 12px 12px 12px 3px;
+    padding: 13px 16px; display: flex; gap: 5px; align-items: center;
+  }
+  .dot {
+    width: 7px; height: 7px; border-radius: 50%; background: #9ca3af;
+    animation: bounce 1.2s infinite;
+  }
+  .dot:nth-child(2) { animation-delay: 0.2s; }
+  .dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes bounce {
+    0%,60%,100% { transform: translateY(0); }
+    30%          { transform: translateY(-5px); }
+  }
+
+  /* Input bar */
+  .input-bar {
+    padding: 12px 16px; border-top: 1px solid #e5e7eb;
+    background: #fff; display: flex; gap: 8px; align-items: flex-end; flex-shrink: 0;
+  }
+  .inp {
+    flex: 1; border: 1px solid #d1d5db; border-radius: 8px;
+    padding: 9px 13px; font-size: 13px; font-family: inherit;
+    background: #f9fafb; color: #111827; outline: none; resize: none; line-height: 1.5;
+    transition: border-color 0.15s;
+  }
+  .inp:focus { border-color: #1a2744; background: #fff; }
+  .clear-btn {
+    background: transparent; border: 1px solid #e5e7eb; border-radius: 8px;
+    padding: 9px 12px; font-size: 12px; color: #6b7280; cursor: pointer;
+    font-family: inherit; white-space: nowrap; flex-shrink: 0; transition: background 0.15s;
+  }
+  .clear-btn:hover { background: #f9fafb; }
+  .send-btn {
+    background: #c8102e; color: #fff; border: none; border-radius: 8px;
+    padding: 9px 18px; font-size: 13px; font-weight: 500; cursor: pointer;
+    display: flex; align-items: center; gap: 6px; flex-shrink: 0;
+    font-family: inherit; transition: background 0.15s; white-space: nowrap;
+  }
+  .send-btn:hover:not(:disabled) { background: #a50d25; }
+  .send-btn:disabled { background: #e5e7eb; color: #9ca3af; cursor: default; }
+
+  /* Responsive */
+  @media (max-width: 600px) {
+    .sidebar { display: none; }
+    .hdr-badge { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── API Key Screen ── -->
+<div id="key-screen">
+  <div class="key-card">
+    <div class="key-logo">
+      <div class="key-logo-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+        </svg>
+      </div>
+      <div>
+        <div class="key-logo-title">Gen Surgery Scheduling Assistant</div>
+        <div class="key-logo-sub">Houston Methodist · Internal Use Only</div>
+      </div>
+    </div>
+    <h2>Enter your API key to continue</h2>
+    <p>Your key is used only in your browser for this session and is never stored or transmitted anywhere else.</p>
+    <label for="api-key-input">Anthropic API Key</label>
+    <input id="api-key-input" class="key-input" type="password" placeholder="sk-ant-..." autocomplete="off" spellcheck="false"/>
+    <div id="key-error" class="key-error">Please enter a valid Anthropic API key (starts with sk-ant-).</div>
+    <button class="key-btn" onclick="startApp()">Launch Assistant</button>
+    <p class="key-note">
+      Don't have a key? Get one at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a><br/>
+      Keys start with <code>sk-ant-</code>
+    </p>
+  </div>
+</div>
+
+<!-- ── App ── -->
+<div id="app">
+  <!-- Header -->
+  <div class="hdr">
+    <div class="hdr-icon">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+      </svg>
+    </div>
+    <div>
+      <div class="hdr-title">Gen Surgery Scheduling Assistant</div>
+      <div class="hdr-sub">Houston Methodist · Internal Use Only</div>
+    </div>
+    <div class="hdr-badge">9 documents loaded</div>
+  </div>
+
+  <!-- Body -->
+  <div class="body">
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="sidebar-section-label">Try asking</div>
+      <div class="suggestions" id="suggestions"></div>
+      <div class="kb-section">
+        <div class="sidebar-section-label" style="padding:0 0 6px;">Knowledge base</div>
+        <div id="doc-list"></div>
+      </div>
+    </div>
+
+    <!-- Chat -->
+    <div class="main">
+      <div class="msgs" id="msgs">
+        <div class="empty-state" id="empty-state">
+          <div class="empty-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              <line x1="9" y1="10" x2="15" y2="10"/><line x1="12" y1="7" x2="12" y2="13"/>
+            </svg>
+          </div>
+          <div class="empty-text">Ask a scheduling question to get started</div>
+        </div>
+      </div>
+      <div class="input-bar">
+        <textarea id="inp" class="inp" rows="1" placeholder="e.g. What do I do if a provider is unavailable?"></textarea>
+        <button class="clear-btn" onclick="clearChat()">Clear</button>
+        <button id="send-btn" class="send-btn" onclick="sendMessage()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+          </svg>
+          Ask
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Knowledge Base ──────────────────────────────────────────────────────────
+const KNOWLEDGE_BASE = `=== GENERAL SURGERY SCHEDULING KNOWLEDGE BASE — HOUSTON METHODIST ===
+Last Updated: October 2024
+
+--- SECTION 1: ACCESS LINE PHONE NUMBERS ---
+Department | Region | Phone Number | Notes
+SURG CLEAR LAKE 300 | East Region | 346-356-5188 | New Dr. Scarlata
+SURG BAYTOWN MOB2 303 | East Region | 346-292-1435
+SURG CL MOB4 400 | Southeast Region | 281-333-8808 | 281-523-3266 Alberto Direct EXT
+SURG CLEAR LAKE 208 | Southeast Region | 281-333-8814
+SURG HMH SM 1501 | Central Region | 713-441-5143 | Access Center Agents Only — do NOT call directly. Send a secure chat instead.
+SURG HMH SM 2435 | Central Region | 346-238-0113
+SURG PEARLAND 220 | South Region | 281-242-3300
+SURG SL DS MOB1 450 - BARIATRIC | Southwest Region | 281-275-0285
+SURG SL MOB3 430 | Southwest Region | 281-242-3300
+SURG SL MOB3 450 - GEN SURG | Southwest Region | 281-275-0745
+SURG WB HG 390 | Northwest Region | 281-737-1117
+SURG WB HG 450 | Northwest Region | 281-737-4864 | New Dr. Hayde Del Calvo
+SURG WH MOB1 560 | West Region | 832-522-3243
+SURG WH MOB1 570 | West Region | 832-522-8553 | New Dr. Arentz
+SURG WH MOB2 265 | West Region | 832-522-8168 | (Dr. Choi) New Suite Number
+SURG CYP MOB 2 525 | Northwest Region | 346-618-4400
+SURG WDL MOB1 | North | 936-270-3654 | New Dr. Louie
+
+--- SECTION 2: ENTERING REFERRALS ---
+Audience: Providers, Nurses, MAs
+New order questions appear for:
+1. Ambulatory Referral to General Surgery
+2. Ambulatory Referral to Bariatric Services
+3. Ambulatory Referral to Colorectal Surgery
+
+ADD THE ORDER:
+1. Click Add Order
+2. Enter the name of the referral and press Enter
+3. The Order Search window appears. Select the correct order and click Accept
+
+REFERRAL CLASSES:
+- Incoming: Originated outside HM, service performed within HM
+- Internal: Originated inside HM, service performed within HM
+- Outgoing: Originated inside HM, service performed outside HM
+
+REASONS FOR REFERRAL - General Surgery: Bariatric Surgery Consultation, Breast Surgery, Colorectal Surgery, General Surgery, Surgical Oncology, Thoracic Surgery, Transplant Surgery
+REASONS FOR REFERRAL - Bariatric Services: Bariatric Surgery Consultation, Bariatric Revision, Long Term Monitoring, Medication Assessment/Management
+REASONS FOR REFERRAL - Colorectal Surgery: Abscess, Colonoscopy, Fistula, Hemorrhoid, Irritable Bowel Disease, Mass/Cancer, General and Other Colorectal
+
+PRIMARY INDICATION - Endocrine (Gen Surg): Adrenal, Mass/Tumor, Parathyroid, Thyroid, Other Endo
+PRIMARY INDICATION - Other Gen Surg: Gallbladder, Gastric/Esophageal, Hernia, Intestinal/Bowel, Liver, Pancreas, Spleen, Other General Surgery, Procedures
+PRIMARY INDICATION - Bariatric Revision: Complications, Weight Gain, Reflux, Other Revision
+PRIMARY INDICATION - Colorectal Colonoscopy: Family Hx of Colon Cancer, Screening, Positive Cologuard, Other Colon Screening
+
+COMPLETING THE REFERRAL:
+3. Click Accept when finished
+4. Click Sign to place the referral order
+5. Provider/Ordering Information window appears — populate Ordering and Authorizing Provider
+
+--- SECTION 3: DECISION TREE ---
+To schedule using the Decision Tree:
+- Launch the Decision Tree with Visit Type
+- Epic SmartText/launch code: GEN SURG DT LAUNCH [2700]
+
+--- SECTION 4: VISIT TYPES ---
+ACTIVE VISIT TYPES (used in Decision Tree):
+- Established Patient
+- New Patient
+- Transfer of Care (new to service line)
+- Post-Op
+- Second Opinion
+- Est Patient New Problem Adv (new to service line)
+- New Patient Bariatric
+- New Patient Weight Mgmt (new to service line)
+- Est Patient Weight Mgmt (new to service line)
+- Hospital Follow Up
+
+CLINIC SCHEDULABLE ONLY IN THE DT (not for direct scheduling):
+- Pre-Op In Clinic - new
+- New Patient Breast
+- Procedure
+
+DISCONTINUED VISIT TYPES (DO NOT USE):
+Pre Op, ED Follow Up, Hospital Follow Up Simple, Hospital Follow Up Complex, New Patient Colorectal, Consult, Follow Up, Global Visit, New Patient Acute, New Patient Complex, New Patient Simple, PO Termed Provider, Digestive Consult, Established Patient Simple, Established Patient Complex, Post-Op Bariatric, Post-Op Complex, Post-Op Simple, Est Patient New Problem, Bariatric Info Session
+
+--- SECTION 5: MESSAGE TEMPLATES ---
+Access standard templates using: .PCCMSG
+Exceptions: IMG = .PCCIMG | URO = .PPCURO | ORTHO = .PCCORTHO
+
+Template types: Appointment, Medication, Orders, Results, Clinical Concern/Update, General Inquiry/Return Call, Forms/Letters, Physician Consult, Error
+
+Why use standard templates:
+- Provides consistent and complete information in every message
+- Contains all information needed for the clinic care team to resolve the message
+
+--- SECTION 6: NEW TAGS ---
+Two new tags with Access Transformation rollout:
+
+PROVIDER MISMATCH: Applied when the referred-to provider does not belong to the appropriate subgroup for the patient's indication/condition/symptom. Action: Review to ensure provider is willing and able to see the patient.
+
+NEW PATIENT COMPLEX: Applied for new patient indications like GERD and Hiatal Hernia. Action: Clinic reviews to ensure patient does not need a longer visit or more information.
+
+Clinical team adds a column to their private DAR report to show Provider Mismatch or Complex Needs Review tags.
+
+--- SECTION 7: PROVIDER IS UNAVAILABLE ---
+Rules:
+1. If the order has a referred-to provider specified, that provider defaults when you click Apply — schedule with this provider
+2. If no appointment available within 10 days, schedule first available and send a Telephone Encounter (TE) to the clinic
+3. If patient requests Video/Virtual Visit, schedule first available in-person appointment and send TE to clinic — clinic contacts patient if virtual is appropriate
+
+Workflow:
+Step 1: Send telephone encounter message to clinic pool using General Template
+Step 2: Clinic assesses provider schedule and determines where to book
+Step 3: Clinic sends message to Admin pool; Admin pool schedules the patient
+
+--- SECTION 8: SECURE CHAT GROUPS ---
+Audience: Providers, Nurses, Front Desk
+
+Group types: Opt-In Groups (manage your own membership) and Other Groups (limited settings)
+
+TO ADJUST OPT-IN GROUP SETTINGS:
+1. Open Secure Chat activity
+2. Click to open group settings at top of conversation list
+3. To add: search and select; To remove: Manage My Groups then Remove; To join: click In; To leave: click Out
+4. Click Accept to save
+
+TO FIND GROUPS: Secure Chat window > Groups > search SURG + clinic name
+
+ALL GENERAL SURGERY SECURE CHAT GROUPS:
+SURG BAYTOWN MOB2 303, SURG CL MOB4 400, SURG CLEAR LAKE 208, SURG HMH SM 1501, SURG HMH SM 2435, SURG PEARLAND 220, SURG SL DS MOB1 450, SURG SL MOB3 430, SURG SL MOB3 450, SURG WB HG 390, SURG WH MOB1 560, SURG WH MOB2 255
+
+--- SECTION 9: SYMPTOMATIC PATIENTS ---
+EMERGENT SYMPTOMS — Tell patient to call 911 or go to ED (do NOT schedule):
+Chest pain with sweating/nausea/left arm pain/difficulty breathing, Uncontrolled or excessive bleeding, Severe difficulty breathing, Serious allergic reaction affecting breathing, Uncontrolled pain, Eye injury causing vision change or loss, Unattached body part, Vomiting large amounts of blood or black coffee ground emesis, Ingestion of foreign body, Suicidal/Homicidal ideation, Risk of harm to self or others, Severe sudden onset headache, Changes in vision, Difficulty speaking or walking, Confusion or unusual behavior, Lethargy, Fainting, Change/loss of consciousness, Loss of neurological function, New onset seizure, New onset facial drooping, Difficult to arouse
+
+EMERGENT WORKFLOW: (1) Do NOT schedule; (2) Advise patient to call 911 or go to ED; (3) Document in telephone encounter and route to clinic Clinical Support pool
+
+URGENT SYMPTOMS — Warm transfer to Clinic Access Line:
+Post-op bleeding, Post-op fever greater than 100.4, Post-op severe nausea/vomiting, Post-op inability to keep food/drinks down over 24hrs, Post-op pain, Redness or drainage from incision, Wound separation, Persistent nausea/vomiting, Increased redness/swelling/foul discharge at incision, Increased soreness/pain at incision, New/unusual abdominal/chest/leg pain, UTI symptoms
+
+URGENT WORKFLOW: (1) Reference emergent/urgent symptom list; (2) Document in telephone encounter, mark HIGH PRIORITY, route to clinic Clinical Support pool; (3) Clinic addresses before end of business day
+
+=== END OF KNOWLEDGE BASE ===`;
+
+// ── Suggestions & Docs ──────────────────────────────────────────────────────
+const SUGGESTIONS = [
+  "How do I enter a referral to General Surgery?",
+  "What visit types are discontinued?",
+  "What do I do if a provider is unavailable?",
+  "What are urgent symptoms for post-op patients?",
+  "Phone number for SURG HMH SM 1501?",
+  "How do I access message templates?",
+  "What is a Provider Mismatch tag?",
+  "How do I join a General Surgery secure chat group?",
+];
+const DOCS = [
+  "Enter Referrals (Gen, Bariatric, Colorectal)",
+  "Access Line Phone Numbers",
+  "Decision Tree Info",
+  "Visit Types",
+  "Message Templates",
+  "New Tags",
+  "Provider Unavailable",
+  "Secure Chat Groups",
+  "Symptomatic Patients",
+];
+
+// ── State ───────────────────────────────────────────────────────────────────
+let apiKey = "";
+let history = [];
+let loading = false;
+
+// ── Key Screen ──────────────────────────────────────────────────────────────
+function startApp() {
+  const val = document.getElementById("api-key-input").value.trim();
+  if (!val.startsWith("sk-ant-") && !val.startsWith("sk-")) {
+    document.getElementById("key-error").style.display = "block";
+    return;
+  }
+  apiKey = val;
+  document.getElementById("key-screen").style.display = "none";
+  const app = document.getElementById("app");
+  app.style.display = "flex";
+  buildSidebar();
+  document.getElementById("inp").focus();
+}
+
+document.getElementById("api-key-input").addEventListener("keydown", e => {
+  if (e.key === "Enter") startApp();
+});
+
+// ── Sidebar ─────────────────────────────────────────────────────────────────
+function buildSidebar() {
+  const sugEl = document.getElementById("suggestions");
+  SUGGESTIONS.forEach(q => {
+    const btn = document.createElement("button");
+    btn.className = "sq";
+    btn.textContent = q;
+    btn.onclick = () => sendMessage(q);
+    sugEl.appendChild(btn);
+  });
+  const docEl = document.getElementById("doc-list");
+  DOCS.forEach(d => {
+    const row = document.createElement("div");
+    row.className = "doc-item";
+    row.innerHTML = `<div class="doc-dot"></div><span>${d}</span>`;
+    docEl.appendChild(row);
+  });
+}
+
+// ── Chat ────────────────────────────────────────────────────────────────────
+const msgsEl   = document.getElementById("msgs");
+const inpEl    = document.getElementById("inp");
+const sendBtn  = document.getElementById("send-btn");
+const emptyEl  = document.getElementById("empty-state");
+
+inpEl.addEventListener("keydown", e => {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+});
+
+function appendMessage(role, text) {
+  if (emptyEl) emptyEl.style.display = "none";
+  const wrap   = document.createElement("div");
+  wrap.className = `msg ${role}`;
+  const label  = document.createElement("div");
+  label.className = "msg-label";
+  label.textContent = role === "user" ? "You" : "Assistant";
+  const bubble = document.createElement("div");
+  bubble.className = "bubble";
+  bubble.textContent = text;
+  wrap.appendChild(label);
+  wrap.appendChild(bubble);
+  msgsEl.appendChild(wrap);
+  msgsEl.scrollTop = msgsEl.scrollHeight;
+}
+
+function showTyping() {
+  const wrap = document.createElement("div");
+  wrap.id = "typing";
+  wrap.className = "typing-wrap";
+  const lbl = document.createElement("div");
+  lbl.className = "msg-label";
+  lbl.textContent = "Assistant";
+  const dots = document.createElement("div");
+  dots.className = "typing-dots";
+  dots.innerHTML = '<div class="dot"></div><div class="dot"></div><div class="dot"></div>';
+  wrap.appendChild(lbl);
+  wrap.appendChild(dots);
+  msgsEl.appendChild(wrap);
+  msgsEl.scrollTop = msgsEl.scrollHeight;
+}
+function removeTyping() {
+  const t = document.getElementById("typing");
+  if (t) t.remove();
+}
+
+function setLoading(state) {
+  loading = state;
+  sendBtn.disabled = state;
+  document.querySelectorAll(".sq").forEach(b => b.disabled = state);
+}
+
+async function sendMessage(text) {
+  const question = (text !== undefined ? text : inpEl.value).trim();
+  if (!question || loading) return;
+  inpEl.value = "";
+  history.push({ role: "user", content: question });
+  appendMessage("user", question);
+  setLoading(true);
+  showTyping();
+
+  try {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true"
+      },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 1000,
+        system: `You are a scheduling assistant for Houston Methodist General Surgery. You help schedulers quickly find answers using only the provided knowledge base.
+
+RULES:
+- Answer ONLY based on the knowledge base. Do not invent or assume information.
+- Be concise and direct — schedulers are busy and often on calls.
+- Use bullet points or numbered steps when listing items or procedures.
+- Always include phone numbers when they are relevant to the answer.
+- If something is not covered in the knowledge base, say: "I don't have that information in my current knowledge base. Please check with your supervisor or the SharePoint site."
+- Never provide clinical or medical advice.
+
+KNOWLEDGE BASE:
+${KNOWLEDGE_BASE}`,
+        messages: history.map(m => ({ role: m.role, content: m.content }))
+      })
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err?.error?.message || `HTTP ${res.status}`);
+    }
+
+    const data  = await res.json();
+    const reply = data?.content?.[0]?.text || "No response returned. Please try again.";
+    removeTyping();
+    appendMessage("assistant", reply);
+    history.push({ role: "assistant", content: reply });
+
+  } catch (err) {
+    removeTyping();
+    appendMessage("assistant", `Error: ${err.message || "Something went wrong. Please try again."}`);
+  }
+
+  setLoading(false);
+  inpEl.focus();
+}
+
+function clearChat() {
+  history = [];
+  msgsEl.innerHTML = "";
+  const fresh = document.createElement("div");
+  fresh.id = "empty-state";
+  fresh.className = "empty-state";
+  fresh.innerHTML = `
+    <div class="empty-icon">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        <line x1="9" y1="10" x2="15" y2="10"/><line x1="12" y1="7" x2="12" y2="13"/>
+      </svg>
+    </div>
+    <div class="empty-text">Ask a scheduling question to get started</div>`;
+  msgsEl.appendChild(fresh);
+  inpEl.focus();
+}
+</script>
+</body>
+</html>
